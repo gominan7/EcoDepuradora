@@ -11,16 +11,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.ecoingenieria.depuradora.ui.components.avatarEmoji
+import com.ecoingenieria.depuradora.ui.components.avatarKeys
 import com.ecoingenieria.depuradora.ui.components.BeaverGuide
 import com.ecoingenieria.depuradora.ui.components.BeaverMood
 import com.ecoingenieria.depuradora.ui.theme.LeafGreen
 import com.ecoingenieria.depuradora.ui.theme.RiverClean
 import com.ecoingenieria.depuradora.ui.theme.RiverDeep
-
-private val avatarKeys = listOf(
-    "avatar_beaver_1", "avatar_beaver_2", "avatar_otter", "avatar_frog",
-    "avatar_fish", "avatar_heron", "avatar_dragonfly", "avatar_turtle"
-)
 
 @Composable
 fun OnboardingScreen(onFinished: (alias: String, avatarKey: String) -> Unit) {
@@ -134,16 +131,4 @@ private fun OnboardingPageProfile(
             }
         }
     }
-}
-
-private fun avatarEmoji(key: String): String = when (key) {
-    "avatar_beaver_1" -> "🦫"
-    "avatar_beaver_2" -> "🦦"
-    "avatar_otter" -> "🦦"
-    "avatar_frog" -> "🐸"
-    "avatar_fish" -> "🐟"
-    "avatar_heron" -> "🦢"
-    "avatar_dragonfly" -> "🐞"
-    "avatar_turtle" -> "🐢"
-    else -> "🦫"
 }

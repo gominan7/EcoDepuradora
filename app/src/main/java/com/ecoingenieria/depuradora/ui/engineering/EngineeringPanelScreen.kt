@@ -5,6 +5,7 @@ import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -13,9 +14,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.unit.dp
@@ -99,28 +102,41 @@ private fun AssemblyStage(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Zona de destino (tubería de ensamblaje)
-        Row(
+        // Zona de destino (tubería de ensamblaje). La zona de acierto real
+        // (dropZoneBounds) es más grande que la caja visible, para que el niño
+        // no tenga que soltar la pieza con precisión de pixel perfecto.
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(110.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(RiverClean.copy(alpha = 0.10f))
+                .height(120.dp)
                 .onGloballyPositioned { coords ->
                     val pos = coords.positionInRoot()
-                    dropZoneBounds = Rect(pos, coords.size.toSize())
+                    val size = coords.size.toSize()
+                    // La zona real de acierto es más amplia que la caja visible
+                    // (48px de margen en cada lado), para dar tolerancia táctil.
+                    val margin = 48f
+                    dropZoneBounds = Rect(
+                        left = pos.x - margin,
+                        top = pos.y - margin,
+                        right = pos.x + size.width + margin,
+                        bottom = pos.y + size.height + margin
+                    )
                 }
-                .padding(8.dp),
-            verticalAlignment = Alignment.CenterVertically
         ) {
-            if (state.placedPieceIds.isEmpty()) {
-                Text("  Suelta aquí la primera pieza  ", color = Color(0xFF7C8A93))
-            }
-            state.placedPieceIds.forEachIndexed { index, id ->
-                val piece = state.availablePieces.find { it.id == id }
-                if (piece != null) {
-                    PieceIcon(iconKey = piece.iconKey, modifier = Modifier.size(48.dp))
-                    if (index != state.placedPieceIds.lastIndex) PipeConnector(flowing = true)
+            PipeAssemblyCanvas(modifier = Modifier.fillMaxSize())
+            Row(
+                modifier = Modifier.fillMaxSize().padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (state.placedPieceIds.isEmpty()) {
+                    Text("  Suelta aquí la primera pieza  ", color = Color(0xFF5B6B73))
+                }
+                state.placedPieceIds.forEachIndexed { index, id ->
+                    val piece = state.availablePieces.find { it.id == id }
+                    if (piece != null) {
+                        PieceIcon(iconKey = piece.iconKey, modifier = Modifier.size(48.dp))
+                        if (index != state.placedPieceIds.lastIndex) PipeConnector(flowing = true)
+                    }
                 }
             }
         }
@@ -152,7 +168,12 @@ private fun AssemblyStage(
         }
 
         Spacer(modifier = Modifier.weight(1f))
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
             OutlinedButton(onClick = onRemoveLastPiece, enabled = state.placedPieceIds.isNotEmpty()) {
                 Text("Quitar última")
             }
@@ -174,7 +195,7 @@ private fun DraggablePiece(
     onDropped: () -> Unit
 ) {
     var offset by remember { mutableStateOf(Offset.Zero) }
-    var origin by remember { mutableStateOf(Offset.Zero) }
+    var layoutCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
     var dragging by remember { mutableStateOf(false) }
 
     Column(
@@ -184,22 +205,37 @@ private fun DraggablePiece(
                 translationX = offset.x
                 translationY = offset.y
                 alpha = if (alreadyPlaced) 0.35f else 1f
+                scaleX = if (dragging) 1.15f else 1f
+                scaleY = if (dragging) 1.15f else 1f
+                shadowElevation = if (dragging) 16f else 0f
             }
-            .onGloballyPositioned { coords -> origin = coords.positionInRoot() }
+            .onGloballyPositioned { coords -> layoutCoordinates = coords }
             .pointerInput(alreadyPlaced) {
                 if (alreadyPlaced) return@pointerInput
                 detectDragGestures(
                     onDragStart = { dragging = true },
                     onDragEnd = {
                         dragging = false
-                        val fingerPosition = origin + offset
+                        val coords = layoutCoordinates
                         val zone = dropZoneBounds
-                        if (zone != null && zone.contains(fingerPosition)) {
-                            onDropped()
+                        if (coords != null && zone != null) {
+                            // Se consulta la posición EN VIVO (localToRoot), que ya
+                            // incluye la traslación visual aplicada por graphicsLayer,
+                            // y se compara el CENTRO de la pieza (no su esquina) contra
+                            // la zona de acierto: así basta con arrastrarla hasta que
+                            // se vea encima de la tubería para que cuente como soltada.
+                            val centerLocal = Offset(coords.size.width / 2f, coords.size.height / 2f)
+                            val centerInRoot = coords.localToRoot(centerLocal)
+                            if (zone.contains(centerInRoot)) {
+                                onDropped()
+                            }
                         }
                         offset = Offset.Zero
                     },
-                    onDragCancel = { offset = Offset.Zero; dragging = false },
+                    onDragCancel = {
+                        offset = Offset.Zero
+                        dragging = false
+                    },
                     onDrag = { change, dragAmount ->
                         change.consume()
                         offset += dragAmount
@@ -208,8 +244,59 @@ private fun DraggablePiece(
             },
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        PieceIcon(iconKey = piece.iconKey, modifier = Modifier.size(48.dp))
+        PieceIcon(iconKey = piece.iconKey, modifier = Modifier.size(56.dp))
         Text(piece.name, style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
+@Composable
+private fun PipeAssemblyCanvas(modifier: Modifier = Modifier) {
+    androidx.compose.foundation.Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+        val pipeTop = h * 0.30f
+        val pipeBottom = h * 0.70f
+
+        // Fondo general de la zona (para que se note claramente el área de destino).
+        drawRoundRect(
+            color = RiverClean.copy(alpha = 0.10f),
+            size = size,
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(20f, 20f)
+        )
+        // Cuerpo del tubo metálico.
+        drawRoundRect(
+            color = Color(0xFFB9C2C9),
+            topLeft = Offset(w * 0.03f, pipeTop),
+            size = Size(w * 0.94f, pipeBottom - pipeTop),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(24f, 24f)
+        )
+        // Brillo superior (para dar volumen cilíndrico).
+        drawRoundRect(
+            color = Color.White.copy(alpha = 0.35f),
+            topLeft = Offset(w * 0.03f, pipeTop + 4f),
+            size = Size(w * 0.94f, (pipeBottom - pipeTop) * 0.28f),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(18f, 18f)
+        )
+        // Interior por donde "entra" el agua.
+        drawRoundRect(
+            color = RiverClean.copy(alpha = 0.28f),
+            topLeft = Offset(w * 0.05f, pipeTop + (pipeBottom - pipeTop) * 0.32f),
+            size = Size(w * 0.90f, (pipeBottom - pipeTop) * 0.42f),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(14f, 14f)
+        )
+        // Bordes/remaches en los extremos, típicos de una tubería industrial.
+        drawRoundRect(
+            color = Color(0xFF7C8A93),
+            topLeft = Offset(0f, pipeTop),
+            size = Size(w * 0.05f, pipeBottom - pipeTop),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(10f, 10f)
+        )
+        drawRoundRect(
+            color = Color(0xFF7C8A93),
+            topLeft = Offset(w * 0.95f, pipeTop),
+            size = Size(w * 0.05f, pipeBottom - pipeTop),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(10f, 10f)
+        )
     }
 }
 

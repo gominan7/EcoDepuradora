@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import com.ecoingenieria.depuradora.ui.navigation.EcoNavGraph
@@ -17,7 +18,11 @@ class MainActivity : ComponentActivity() {
         val container = (application as EcoDepuradoraApp).container
         setContent {
             EcoDepuradoraTheme {
-                Surface(modifier = Modifier.fillMaxSize()) {
+                // safeDrawingPadding() evita que cualquier contenido (botones,
+                // texto, controles) quede pegado a la barra de estado o a la
+                // zona de gestos/navegación del sistema, ahora que la app usa
+                // enableEdgeToEdge().
+                Surface(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
                     EcoNavGraph(container = container)
                 }
             }

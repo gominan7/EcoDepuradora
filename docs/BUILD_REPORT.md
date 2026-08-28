@@ -10,6 +10,26 @@ exactitud qué se intentó, qué falló y por qué, sin declarar ningún
 
 ## Historial de intentos de compilación
 
+### Intento 2 — APK instalado en dispositivo real, pruebas de juego
+
+Tras el `BUILD SUCCESSFUL` del Intento 1 (una vez corregidos los errores de
+compilación), el usuario instaló el APK real en su celular y jugó el
+primer nivel. Esto **no es un error de compilación** sino un conjunto de
+bugs de comportamiento/UX detectados en uso real, reportados con capturas
+de pantalla:
+
+| # | Problema reportado | Causa raíz encontrada | Corrección aplicada |
+|---|---|---|---|
+| 1 | El avatar elegido en el Onboarding no aparecía en ningún sitio del Mapa de la Región; solo se veía el apodo. | La cabecera del mapa (`RegionMapHeader`) siempre dibujaba a Berto (el guía), pero nunca al avatar propio del jugador; no existía ningún componente que lo mostrara. | Se creó `ui/components/Avatar.kt` (mapeo `avatarKey → emoji` + `PlayerAvatarBadge`, único punto de verdad reutilizado por Onboarding, Mapa de la Región y Oficina del Castor) y se añadió el avatar del jugador junto al saludo en la cabecera y en la Oficina. |
+| 2a | "Arrastra hasta la tubería" pero no se veía ninguna tubería. | La zona de destino solo tenía un `background(color, alpha = 0.10f)`, prácticamente invisible, sin ninguna ilustración de tubería real. | Se añadió `PipeAssemblyCanvas`: una ilustración vectorial real de tubería (cuerpo metálico, brillo cilíndrico, interior azul, remaches en los extremos). |
+| 2b | Al arrastrar una pieza (ej. "Reja Gruesa") hasta la zona, esta "se vota" (nunca se registra como soltada). | **Bug real de lógica de arrastre.** El código comprobaba si la esquina superior-izquierda de la pieza (no su centro visual) caía dentro de la zona, usando además una posición "congelada" capturada una sola vez en el layout inicial en vez de leerla en vivo. En la práctica, el niño necesitaba arrastrar la pieza mucho más allá de donde se veía superpuesta a la tubería para que "contara". | Se reescribió `DraggablePiece`: ahora se guarda la referencia viva a `LayoutCoordinates` y, al soltar, se calcula la posición **en vivo** del **centro** de la pieza con `coordinates.localToRoot(centro)` (que sí incluye la traslación visual aplicada por `graphicsLayer`), comparándola contra una zona de acierto además **ampliada 48px** en cada lado para dar tolerancia táctil. |
+| 3 | Los botones "Quitar última" y "Confirmar orden" quedaban pegados a la zona de gestos del sistema, difíciles de pulsar. | La app usa `enableEdgeToEdge()` (contenido dibujado por debajo de las barras del sistema) pero ningún `Composable` aplicaba padding de insets, así que el contenido inferior quedaba literalmente debajo de la barra de navegación gestual. | Se añadió `Modifier.safeDrawingPadding()` de forma **global**, en el `Surface` raíz de `MainActivity` (afecta a todas las pantallas, no solo a esta), más un `padding(bottom = 16.dp)` adicional en la fila de botones para dar aún más aire. |
+
+Estas correcciones ya están aplicadas en el código fuente entregado en este
+zip. Como en el caso anterior, no se han podido volver a compilar en este
+entorno (sigue sin SDK/red); el usuario debe repetir el ciclo push → GitHub
+Actions → instalar APK → probar para confirmarlas en uso real.
+
 ### Intento 1 — GitHub Actions, 2026-08-28 04:32 UTC
 
 El usuario subió el proyecto a GitHub y ejecutó el workflow real. Esta fue

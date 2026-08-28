@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.dp
 import com.ecoingenieria.depuradora.domain.model.Level
 import com.ecoingenieria.depuradora.domain.model.LevelStatus
 import com.ecoingenieria.depuradora.domain.model.Stage
-import com.ecoingenieria.depuradora.ui.components.BeaverGuide
+import com.ecoingenieria.depuradora.ui.components.PlayerAvatarBadge
 import com.ecoingenieria.depuradora.ui.components.WaterQualityTank
 import com.ecoingenieria.depuradora.ui.components.riverBackgroundBrush
 import com.ecoingenieria.depuradora.ui.theme.*
@@ -39,6 +39,7 @@ fun RegionMapScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             RegionMapHeader(
                 aliasText = state.profile?.alias?.ifBlank { "Eco-Ingeniero" } ?: "Eco-Ingeniero",
+                avatarKey = state.profile?.avatarKey ?: "avatar_beaver_1",
                 globalHealth = state.profile?.globalWaterHealth ?: 0,
                 onOpenOffice = onOpenOffice
             )
@@ -69,14 +70,14 @@ fun RegionMapScreen(
 }
 
 @Composable
-private fun RegionMapHeader(aliasText: String, globalHealth: Int, onOpenOffice: () -> Unit) {
+private fun RegionMapHeader(aliasText: String, avatarKey: String, globalHealth: Int, onOpenOffice: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        BeaverGuide(modifier = Modifier.size(56.dp))
+        PlayerAvatarBadge(avatarKey = avatarKey, modifier = Modifier.size(52.dp))
         Spacer(modifier = Modifier.width(10.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text("Hola, $aliasText", style = MaterialTheme.typography.titleMedium)

@@ -16,6 +16,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ecoingenieria.depuradora.ui.components.BadgeMedal
 import com.ecoingenieria.depuradora.ui.components.BeaverGuide
+import com.ecoingenieria.depuradora.ui.components.PlayerAvatarBadge
 import com.ecoingenieria.depuradora.ui.theme.RiverDeep
 
 @Composable
@@ -29,6 +30,8 @@ fun OfficeScreen(
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) { Text("←", style = MaterialTheme.typography.headlineMedium) }
             BeaverGuide(modifier = Modifier.size(48.dp))
+            Spacer(modifier = Modifier.width(4.dp))
+            PlayerAvatarBadge(avatarKey = state.profile?.avatarKey ?: "avatar_beaver_1", modifier = Modifier.size(40.dp))
             Spacer(modifier = Modifier.width(8.dp))
             Column {
                 Text("Oficina del Castor", style = MaterialTheme.typography.headlineMedium)
