@@ -35,4 +35,8 @@ class OfficeViewModel(private val repository: GameRepository) : ViewModel() {
     fun toggleHaptics(enabled: Boolean) {
         viewModelScope.launch { repository.setHapticsEnabled(enabled) }
     }
+
+    fun resetProgress() {
+        viewModelScope.launch { repository.resetAllProgress() }
+    }
 }

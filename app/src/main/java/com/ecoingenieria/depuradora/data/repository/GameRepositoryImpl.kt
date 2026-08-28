@@ -239,6 +239,41 @@ class GameRepositoryImpl(
         val profile = profileDao.getProfile() ?: return
         profileDao.update(profile.copy(hapticsEnabled = enabled))
     }
+
+    override suspend fun resetAllProgress() {
+        // Borra únicamente lo que representa "avance del jugador": progreso
+        // de niveles, planos e insignias desbloqueados. El contenido semilla
+        // (etapas, piezas, niveles, catálogo de planos e insignias) no se
+        // toca, así no hace falta reinstalar la app para volver a jugar
+        // desde cero.
+        progressDao.clearAll()
+        blueprintDao.clearUnlocks()
+        badgeDao.clearUnlocks()
+
+        val sorted = SeedData.levels.sortedWith(compareBy({ it.stageId }, { it.orderIndex }))
+        val freshProgress = sorted.mapIndexed { index, level ->
+            LevelProgressEntity(
+                levelId = level.id,
+                status = if (index == 0) LevelStatus.AVAILABLE.name else LevelStatus.LOCKED.name,
+                bestWaterQuality = 0,
+                attempts = 0,
+                lastPlayedEpochMillis = 0L
+            )
+        }
+        progressDao.insertAll(freshProgress)
+
+        val profile = profileDao.getProfile()
+        if (profile != null) {
+            profileDao.update(
+                profile.copy(
+                    alias = "",
+                    avatarKey = "avatar_beaver_1",
+                    globalWaterHealth = 0,
+                    onboardingCompleted = false
+                )
+            )
+        }
+    }
 }
 
 private fun StageEntity.toDomain() = Stage(id, orderIndex, name, shortDescription, colorHex)

@@ -8,6 +8,10 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -17,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import com.ecoingenieria.depuradora.ui.components.BadgeMedal
 import com.ecoingenieria.depuradora.ui.components.BeaverGuide
 import com.ecoingenieria.depuradora.ui.components.PlayerAvatarBadge
+import com.ecoingenieria.depuradora.ui.theme.AlertCoral
 import com.ecoingenieria.depuradora.ui.theme.RiverDeep
 
 @Composable
@@ -24,8 +29,11 @@ fun OfficeScreen(
     state: OfficeUiState,
     onBack: () -> Unit,
     onToggleSound: (Boolean) -> Unit,
-    onToggleHaptics: (Boolean) -> Unit
+    onToggleHaptics: (Boolean) -> Unit,
+    onResetProgress: () -> Unit
 ) {
+    var showResetConfirm by remember { mutableStateOf(false) }
+
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) { Text("←", style = MaterialTheme.typography.headlineMedium) }
@@ -97,5 +105,47 @@ fun OfficeScreen(
             Text("Vibración")
             Switch(checked = state.profile?.hapticsEnabled ?: true, onCheckedChange = onToggleHaptics)
         }
+
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(
+            "Privacidad",
+            style = MaterialTheme.typography.titleMedium
+        )
+        Text(
+            "EcoDepuradora no usa internet ni recopila datos personales. Tu " +
+                "apodo, avatar y progreso se guardan únicamente en este dispositivo.",
+            style = MaterialTheme.typography.bodyMedium
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+        TextButton(onClick = { showResetConfirm = true }) {
+            Text("Reiniciar todo el progreso", color = AlertCoral)
+        }
+        Text(
+            "Borra tu apodo, avatar, niveles completados, planos e insignias.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color(0xFF7C8A93)
+        )
+    }
+
+    if (showResetConfirm) {
+        AlertDialog(
+            onDismissRequest = { showResetConfirm = false },
+            title = { Text("¿Reiniciar todo el progreso?") },
+            text = { Text("Esta acción no se puede deshacer. Vas a volver a empezar desde cero.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showResetConfirm = false
+                    onResetProgress()
+                }) {
+                    Text("Sí, reiniciar", color = AlertCoral)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showResetConfirm = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
     }
 }

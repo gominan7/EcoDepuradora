@@ -25,6 +25,15 @@ interface GameRepository {
     suspend fun completeOnboarding(alias: String, avatarKey: String)
     suspend fun setSoundEnabled(enabled: Boolean)
     suspend fun setHapticsEnabled(enabled: Boolean)
+
+    /**
+     * Borra por completo el progreso del jugador (niveles, planos, insignias
+     * y perfil) y vuelve a dejar la partida como recién instalada, con el
+     * primer nivel disponible y el onboarding pendiente. Usado desde la
+     * Oficina del Castor ("Reiniciar todo el progreso"), sin depender de
+     * desinstalar la app.
+     */
+    suspend fun resetAllProgress()
 }
 
 data class LevelSubmissionOutcome(

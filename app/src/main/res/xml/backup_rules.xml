@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Excluye la base de datos Room del Auto Backup de Android (API <= 31).
+    EcoDepuradora documenta que el progreso es 100% local y no se
+    sincroniza: si el Auto Backup restaurara la base de datos al reinstalar
+    la app, esa promesa dejaría de cumplirse. Ver docs/BASE_DE_DATOS.md.
+-->
+<full-backup-content>
+    <exclude domain="database" path="." />
+</full-backup-content>

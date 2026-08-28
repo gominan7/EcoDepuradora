@@ -114,7 +114,15 @@ fun EcoNavGraph(container: AppContainer) {
                 state = state,
                 onBack = { navController.popBackStack() },
                 onToggleSound = vm::toggleSound,
-                onToggleHaptics = vm::toggleHaptics
+                onToggleHaptics = vm::toggleHaptics,
+                onResetProgress = {
+                    vm.resetProgress()
+                    // Vuelve al mapa: como observa el mismo perfil de forma
+                    // reactiva, detectará onboardingCompleted = false y
+                    // mostrará el onboarding automáticamente, sin tener que
+                    // desinstalar la app para "empezar de cero".
+                    navController.popBackStack(Routes.REGION_MAP, inclusive = false)
+                }
             )
         }
     }

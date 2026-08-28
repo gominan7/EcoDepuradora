@@ -10,6 +10,45 @@ exactitud qué se intentó, qué falló y por qué, sin declarar ningún
 
 ## Historial de intentos de compilación
 
+### Intento 3 — Bug de persistencia entre reinstalaciones (reportado por el usuario, sin log de compilación)
+
+Al reinstalar el APK (desinstalar + instalar de nuevo) en el mismo
+celular, la app **no volvía a mostrar el onboarding** y aparecía con
+niveles ya completados de una partida anterior. No es un error de
+compilación; es un comportamiento real de Android:
+
+**Causa raíz:** `AndroidManifest.xml` tenía `android:allowBackup="true"`
+sin ninguna regla de exclusión. Esto activa el **Auto Backup de Android**:
+al desinstalar la app, el sistema sube automáticamente los datos internos
+(incluida la base de datos Room con todo el progreso) a la cuenta de
+Google del dispositivo, y los restaura solos en la siguiente instalación.
+Esto contradice directamente lo que el propio proyecto documenta (progreso
+100% local, sin sincronización) — ver `docs/BASE_DE_DATOS.md`.
+
+**Corrección aplicada:**
+- Se añadieron `res/xml/backup_rules.xml` (Android ≤ 11) y
+  `res/xml/data_extraction_rules.xml` (Android 12+), ambos excluyendo el
+  dominio `database` tanto del backup en la nube como de la transferencia
+  directa entre dispositivos.
+- Se referenciaron desde `AndroidManifest.xml` con
+  `android:fullBackupContent` y `android:dataExtractionRules`.
+- Con esto, una desinstalación + reinstalación real ahora sí arranca desde
+  cero, como se documenta.
+
+**Mejora añadida en el mismo cambio:** para no depender de desinstalar la
+app cada vez que se quiera probar el flujo desde cero, se agregó un botón
+**"Reiniciar todo el progreso"** en la Oficina del Castor (con diálogo de
+confirmación, igual que la función equivalente de Ajustes en DeciAventuras).
+Internamente:
+- `GameRepository.resetAllProgress()` (nueva función) borra el progreso de
+  niveles, los planos e insignias desbloqueados y el perfil (alias, avatar,
+  salud global, onboarding), pero conserva el contenido semilla (etapas,
+  piezas, catálogo de niveles/planos/insignias) para no tener que volver a
+  sembrar la base de datos.
+- Al confirmar el reinicio, la app vuelve al Mapa de la Región, que
+  detecta reactivamente `onboardingCompleted = false` y muestra el
+  onboarding de nuevo automáticamente.
+
 ### Intento 2 — APK instalado en dispositivo real, pruebas de juego
 
 Tras el `BUILD SUCCESSFUL` del Intento 1 (una vez corregidos los errores de

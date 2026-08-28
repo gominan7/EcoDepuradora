@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Excluye la base de datos Room tanto del backup en la nube como de la
+    transferencia directa entre dispositivos (Android 12+, API 31+), por la
+    misma razón que backup_rules.xml: el progreso de EcoDepuradora es local
+    y no debe reaparecer "mágicamente" al reinstalar la app o cambiar de
+    celular, para no contradecir la documentación de privacidad del juego.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="database" path="." />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="database" path="." />
+    </device-transfer>
+</data-extraction-rules>

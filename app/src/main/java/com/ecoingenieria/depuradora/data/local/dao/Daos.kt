@@ -72,6 +72,9 @@ interface LevelProgressDao {
 
     @Query("SELECT COUNT(*) FROM level_progress")
     suspend fun count(): Int
+
+    @Query("DELETE FROM level_progress")
+    suspend fun clearAll()
 }
 
 @Dao
@@ -90,6 +93,9 @@ interface BlueprintDao {
 
     @Query("SELECT COUNT(*) FROM blueprints")
     suspend fun count(): Int
+
+    @Query("DELETE FROM blueprint_unlocks")
+    suspend fun clearUnlocks()
 }
 
 @Dao
@@ -111,6 +117,9 @@ interface BadgeDao {
 
     @Query("SELECT COUNT(*) FROM badges")
     suspend fun count(): Int
+
+    @Query("DELETE FROM badge_unlocks")
+    suspend fun clearUnlocks()
 }
 
 @Dao
