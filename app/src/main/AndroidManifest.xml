@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application
+        android:name=".EcoDepuradoraApp"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.EcoDepuradora"
+        android:hardwareAccelerated="true"
+        android:usesCleartextTraffic="false">
+
+        <!--
+            Sin permisos de INTERNET, ubicación, contactos ni cámara/micrófono:
+            la app es 100% offline y no recopila datos personales (regla 23 y 27
+            de la Especificación Maestra). No se declara ningún <uses-permission>.
+        -->
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:theme="@style/Theme.EcoDepuradora.Splash"
+            android:screenOrientation="portrait">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
