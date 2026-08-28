@@ -1,0 +1,65 @@
+name: Android CI - Build APK
+
+# Se ejecuta al hacer push o pull request. El repositorio NO se crea ni se
+# sube automáticamente (regla 30 de la Especificación Maestra); este workflow
+# solo se activa cuando el propio usuario decida hacer push del proyecto.
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Gradle (provisions gradle + regenerates wrapper jar if missing)
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Ensure Gradle wrapper is present
+        run: gradle wrapper --gradle-version 8.7 || true
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x ./gradlew
+
+      - name: Clean
+        run: ./gradlew clean --no-daemon
+
+      - name: Unit tests (domain + data)
+        run: ./gradlew testDebugUnitTest --no-daemon
+
+      - name: Lint
+        run: ./gradlew lintDebug --no-daemon
+
+      - name: Assemble debug APK
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: EcoDepuradora-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+
+      - name: Upload unit test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-results
+          path: app/build/test-results/testDebugUnitTest/*.xml
+
+      - name: Upload lint report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-report
+          path: app/build/reports/lint-results-debug.html
