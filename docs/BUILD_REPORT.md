@@ -1,6 +1,6 @@
 # Build Report — EcoDepuradora
 
-## Estado: COMPILACIÓN NO VERIFICADA
+## Estado: COMPILACIÓN NO VERIFICADA (corrección aplicada tras el primer intento real en CI)
 
 Siguiendo la regla de honestidad del proyecto (sección 37 de la
 Especificación Maestra: *"Si el entorno no puede compilar: COMPILACIÓN NO
@@ -8,7 +8,42 @@ VERIFICADA. Nunca simules resultados."*), este informe documenta con
 exactitud qué se intentó, qué falló y por qué, sin declarar ningún
 `BUILD SUCCESSFUL` que no se haya observado realmente.
 
-## Por qué no se pudo compilar en este entorno
+## Historial de intentos de compilación
+
+### Intento 1 — GitHub Actions, 2026-08-28 04:32 UTC
+
+El usuario subió el proyecto a GitHub y ejecutó el workflow real. Esta fue
+la **primera compilación real** del proyecto (no simulada). El paso
+`./gradlew testDebugUnitTest --no-daemon` falló en `compileDebugKotlin`
+con estos errores exactos:
+
+```
+e: .../ui/engineering/EngineeringPanelScreen.kt:106:18 Unresolved reference: clip
+e: .../ui/engineering/EngineeringPanelScreen.kt:108:41 Cannot infer a type for this parameter.
+e: .../ui/engineering/EngineeringPanelScreen.kt:323:14 Unresolved reference: clip
+e: .../ui/engineering/EngineeringPanelScreen.kt:332:22 Unresolved reference: clip
+e: .../ui/engineering/EngineeringPanelScreen.kt:335:25 Unresolved reference. None of the
+   following candidates is applicable because of receiver type mismatch: detectDragGestures(...)
+e: .../ui/engineering/EngineeringViewModel.kt:68:55 Unresolved reference: first
+e: .../ui/engineering/EngineeringViewModel.kt:69:49 Unresolved reference: it
+```
+
+**Causa raíz y corrección aplicada:**
+
+| Error | Causa | Corrección |
+|---|---|---|
+| `Unresolved reference: clip` (×3) | Faltaba `import androidx.compose.ui.draw.clip` en `EngineeringPanelScreen.kt` | Import añadido |
+| `Cannot infer a type for this parameter` (línea 108) | Efecto cascada del error de `clip` anterior: al romperse la cadena de `Modifier`, el compilador no podía inferir el tipo del parámetro `coords` en el `onGloballyPositioned` siguiente | Se resolvió automáticamente al corregir el import de `clip` |
+| `receiver type mismatch` en `detectDragGestures` | Un `pointerInput` con `detectDragGestures { _, _ -> }` vacío y sin propósito real sobre cada partícula del microscopio del Laboratorio de Bacterias (la interacción real ya la cubre el botón "Tocar para limpiar") | Se eliminó ese bloque muerto en `MicroscopeView` |
+| `Unresolved reference: first` / `Unresolved reference: it` | Faltaba `import kotlinx.coroutines.flow.first` en `EngineeringViewModel.kt`; se llamaba a `kotlinx.coroutines.flow.first(flow)` con sintaxis incorrecta | Import añadido y la llamada se reescribió como `repository.observePiecesForStage(level.stageId).first()`; también se limpió código muerto (`val allPieces = mutableListOf<Piece>()` sin uso) que quedó de un borrador anterior |
+
+Estas correcciones ya están aplicadas en el código fuente entregado en este
+zip. **No se han vuelto a ejecutar en CI todavía** desde este entorno (sigue
+sin SDK/red, ver más abajo), por lo que el estado formal sigue siendo
+*no verificado* hasta que el usuario vuelva a hacer push y confirme un
+`BUILD SUCCESSFUL` real.
+
+## Por qué este entorno de generación no puede compilar
 
 El proyecto se generó dentro de un contenedor Linux (Ubuntu 24, JDK 21)
 usado únicamente para escribir y organizar archivos de texto/código. Se
@@ -24,20 +59,26 @@ comprobó explícitamente:
 
 Con estas restricciones de red y sin el SDK de Android, es técnicamente
 imposible ejecutar `./gradlew assembleDebug` (ni ningún otro objetivo de
-Gradle que dependa de los plugins de Android) en este entorno concreto.
+Gradle que dependa de los plugins de Android) en este entorno concreto. Por
+eso el primer error real solo pudo detectarse **en GitHub Actions**, con
+acceso completo a Internet y al SDK — que es exactamente para lo que se
+preparó `.github/workflows/android-build.yml`.
 
 ## Lo que sí se hizo
 
 - Se generó el código fuente completo de la app (Kotlin/Compose/Room),
   siguiendo la arquitectura MVVM + Clean Architecture pedida.
-- Se generó el script wrapper oficial de Gradle (`gradlew`, `gradlew.bat`)
-  descargado directamente del repositorio oficial de Gradle en GitHub
-  (`github.com/gradle/gradle`, dominio permitido en este entorno).
-- Se revisó manualmente cada archivo Kotlin para detectar errores de
-  sintaxis evidentes (imports, llaves, tipos) durante su redacción.
-- Se preparó un flujo de **GitHub Actions** (`.github/workflows/android-
-  build.yml`) que sí tiene acceso completo a Internet y al SDK de Android
-  preinstalado en los runners de GitHub, y que ejecuta exactamente la
+- Se generó el script wrapper oficial de Gradle (`gradlew`, `gradlew.bat`,
+  `gradle-wrapper.jar`) descargado directamente del repositorio oficial de
+  Gradle en GitHub (`github.com/gradle/gradle`, dominio permitido en este
+  entorno).
+- Se corrigieron, con evidencia real de log de CI, los 3 errores de
+  compilación reportados en el primer intento (ver tabla arriba).
+- Se revisó de forma proactiva el resto del proyecto en busca del mismo
+  patrón de error (imports de `clip` faltantes, usos de `.first()` sin
+  importar) y no se encontraron más casos.
+- Se preparó un flujo de **GitHub Actions**
+  (`.github/workflows/android-build.yml`) que ejecuta exactamente la
   secuencia pedida:
   ```
   ./gradlew clean
@@ -45,6 +86,7 @@ Gradle que dependa de los plugins de Android) en este entorno concreto.
   ./gradlew lintDebug
   ./gradlew assembleDebug
   ```
+
 
 ## Cómo obtener una compilación verificada real
 

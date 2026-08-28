@@ -10,6 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
@@ -331,9 +332,6 @@ private fun MicroscopeView(eaten: Int, total: Int, onTapOrganicMatter: () -> Uni
                     .size(20.dp)
                     .clip(RoundedCornerShape(50))
                     .background(RiverMuddy)
-                    .pointerInput(i, eaten) {
-                        detectDragGestures { _, _ -> }
-                    }
             )
         }
         androidx.compose.material3.TextButton(

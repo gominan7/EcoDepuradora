@@ -7,6 +7,7 @@ import com.ecoingenieria.depuradora.domain.usecase.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlin.random.Random
 
@@ -45,8 +46,6 @@ class EngineeringViewModel(
         viewModelScope.launch {
             repository.markLevelStarted(levelId)
             val level = repository.getLevel(levelId) ?: return@launch
-            val allPieces = mutableListOf<Piece>()
-            repository.observePiecesForStage(level.stageId)
             _uiState.value = _uiState.value.copy(
                 level = level,
                 phase = EngineeringPhase.ASSEMBLY,
@@ -56,20 +55,17 @@ class EngineeringViewModel(
                 placedPieceIds = emptyList(),
                 assemblyResult = null
             )
-            // Piezas disponibles: las requeridas + un par de intrusas para que el
-            // niño tenga que razonar el orden, no solo colocar lo único que hay.
+            // Piezas disponibles: las requeridas para este nivel, mezcladas
+            // para que el niño tenga que razonar el orden correcto.
             loadPiecesForLevel(level)
         }
     }
 
     private suspend fun loadPiecesForLevel(level: Level) {
-        repository.observePiecesForStage(level.stageId).let { flow ->
-            // Tomamos el primer valor emitido (ya sembrado por ensureSeeded()).
-            val stagePieces = kotlinx.coroutines.flow.first(flow)
-            val required = stagePieces.filter { it.id in level.requiredPieceIds }
-            val shuffled = required.shuffled(Random(level.id))
-            _uiState.value = _uiState.value.copy(availablePieces = shuffled)
-        }
+        val stagePieces = repository.observePiecesForStage(level.stageId).first()
+        val required = stagePieces.filter { it.id in level.requiredPieceIds }
+        val shuffled = required.shuffled(Random(level.id))
+        _uiState.value = _uiState.value.copy(availablePieces = shuffled)
     }
 
     fun placePiece(pieceId: Int) {
